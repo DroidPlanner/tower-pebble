@@ -34,7 +34,7 @@ public class PebbleNotificationProvider implements NotificationHandler.Notificat
 	private static final int KEY_APP_VERSION = 3;
 
 	private static final UUID DP_UUID = UUID.fromString("1de866f1-22fa-4add-ba55-e7722167a3b4");
-	private static final String EXPECTED_APP_VERSION = "three";
+	private static final String EXPECTED_APP_VERSION = "one";
 
     private final static IntentFilter eventFilter = new IntentFilter();
     static {

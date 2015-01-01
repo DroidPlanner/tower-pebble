@@ -1,6 +1,6 @@
 #include <pebble.h>
 #include <string.h>
-#define APP_VERSION "three"
+#define APP_VERSION "one"
   
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!variables
 static Window *window;
