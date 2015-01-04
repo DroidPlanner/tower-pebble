@@ -1,4 +1,4 @@
-package org.droidplanner.android.notifications;
+package org.droidplanner.pebble;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +26,7 @@ import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.gcs.follow.FollowState;
 import com.o3dr.services.android.lib.gcs.follow.FollowType;
 
-public class PebbleNotificationProvider implements NotificationHandler.NotificationProvider {
+public class PebbleNotificationProvider {
 
 	private static final int KEY_MODE = 0;
 	private static final int KEY_FOLLOW_TYPE = 1;
@@ -119,7 +119,6 @@ public class PebbleNotificationProvider implements NotificationHandler.Notificat
                 eventFilter);
 	}
 
-    @Override
 	public void onTerminate() {
 		if (datahandler != null) {
 			applicationContext.unregisterReceiver(datahandler);
