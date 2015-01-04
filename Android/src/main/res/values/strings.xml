@@ -2,7 +2,8 @@
 <resources>
 
     <string name="app_name">dp-pebble</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="intro_text">This app handles communication between 3DR-Services and the dp-pebble
+        watchapp.  No need to start this app, it works in the background.</string>
+    <string name="install_button_title">Install DP watchapp</string>
 
 </resources>
