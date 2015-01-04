@@ -24,3 +24,5 @@ proguard/
 .metadata
 # Mac OSX files
 .DS_Store
+# Pebble build files
+Libraries/PebbleKit/build/
