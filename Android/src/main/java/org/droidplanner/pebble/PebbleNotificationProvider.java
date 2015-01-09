@@ -10,6 +10,7 @@ import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.PebbleKit.PebbleDataReceiver;
 import com.getpebble.android.kit.util.PebbleDictionary;
 import com.o3dr.android.client.Drone;
+import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.property.Altitude;
@@ -25,7 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-public class PebbleNotificationProvider {
+public class PebbleNotificationProvider{
 
 	private static final int KEY_MODE = 0;
 	private static final int KEY_FOLLOW_TYPE = 1;
@@ -35,65 +36,52 @@ public class PebbleNotificationProvider {
 	private static final UUID DP_UUID = UUID.fromString("1de866f1-22fa-4add-ba55-e7722167a3b4");
 	private static final String EXPECTED_APP_VERSION = "one";
 
-    public final static IntentFilter eventFilter = new IntentFilter();
-    static {
-        eventFilter.addAction(AttributeEvent.STATE_CONNECTED);
-        eventFilter.addAction(AttributeEvent.STATE_VEHICLE_MODE);
-        eventFilter.addAction(AttributeEvent.BATTERY_UPDATED);
-        eventFilter.addAction(AttributeEvent.SPEED_UPDATED);
-        eventFilter.addAction(AttributeEvent.FOLLOW_UPDATE);
-    }
+    public void processData(Intent intent) {
+        final String action = intent.getAction();
+        if(AttributeEvent.STATE_CONNECTED.equals(action)){
+            PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
+        }
+        else if(AttributeEvent.STATE_VEHICLE_MODE.equals(action)
+                || AttributeEvent.BATTERY_UPDATED.equals(action)
+                ||AttributeEvent.SPEED_UPDATED.equals(action)){
+            sendDataToWatchIfTimeHasElapsed(dpApi);
+        }
+        else if((AttributeEvent.FOLLOW_START.equals(action)
+                || AttributeEvent.FOLLOW_STOP.equals(action))) {
+            sendDataToWatchIfTimeHasElapsed(dpApi);
 
+            FollowState followState = dpApi.getAttribute(AttributeType.FOLLOW_STATE);
+            if(followState != null) {
+                String eventLabel = null;
+                switch (followState.getState()) {
+                    case FollowState.STATE_START:
+                    case FollowState.STATE_RUNNING:
+                        eventLabel = "FollowMe enabled";
+                        break;
 
-    public final BroadcastReceiver eventReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            if(AttributeEvent.STATE_CONNECTED.equals(action)){
-                PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
-            }
-            else if(AttributeEvent.STATE_VEHICLE_MODE.equals(action)
-                    || AttributeEvent.BATTERY_UPDATED.equals(action)
-                    ||AttributeEvent.SPEED_UPDATED.equals(action)){
-                sendDataToWatchIfTimeHasElapsed(dpApi);
-            }
-            else if((AttributeEvent.FOLLOW_START.equals(action)
-                    || AttributeEvent.FOLLOW_STOP.equals(action))) {
-                sendDataToWatchIfTimeHasElapsed(dpApi);
+                    case FollowState.STATE_END:
+                        eventLabel = "FollowMe disabled";
+                        break;
 
-                FollowState followState = dpApi.getAttribute(AttributeType.FOLLOW_STATE);
-                if(followState != null) {
-                    String eventLabel = null;
-                    switch (followState.getState()) {
-                        case FollowState.STATE_START:
-                        case FollowState.STATE_RUNNING:
-                            eventLabel = "FollowMe enabled";
-                            break;
+                    case FollowState.STATE_INVALID:
+                        eventLabel = "FollowMe error: invalid state";
+                        break;
 
-                        case FollowState.STATE_END:
-                            eventLabel = "FollowMe disabled";
-                            break;
+                    case FollowState.STATE_DRONE_DISCONNECTED:
+                        eventLabel = "FollowMe error: drone not connected";
+                        break;
 
-                        case FollowState.STATE_INVALID:
-                            eventLabel = "FollowMe error: invalid state";
-                            break;
+                    case FollowState.STATE_DRONE_NOT_ARMED:
+                        eventLabel = "FollowMe error: drone not armed";
+                        break;
+                }
 
-                        case FollowState.STATE_DRONE_DISCONNECTED:
-                            eventLabel = "FollowMe error: drone not connected";
-                            break;
-
-                        case FollowState.STATE_DRONE_NOT_ARMED:
-                            eventLabel = "FollowMe error: drone not armed";
-                            break;
-                    }
-
-                    if (eventLabel != null) {
-                        Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
-                    }
+                if (eventLabel != null) {
+                    Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
                 }
             }
         }
-    };
+    }
 
     /**
 	 * Application context.

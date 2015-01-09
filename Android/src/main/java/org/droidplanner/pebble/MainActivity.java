@@ -1,5 +1,7 @@
 package org.droidplanner.pebble;
 
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -22,6 +24,16 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
     ServiceManager serviceManager;
     Drone drone;
 
+    //TODO use this eventFilter
+    public final static IntentFilter eventFilter = new IntentFilter();
+    static {
+        eventFilter.addAction(AttributeEvent.STATE_CONNECTED);
+        eventFilter.addAction(AttributeEvent.STATE_VEHICLE_MODE);
+        eventFilter.addAction(AttributeEvent.BATTERY_UPDATED);
+        eventFilter.addAction(AttributeEvent.SPEED_UPDATED);
+        eventFilter.addAction(AttributeEvent.FOLLOW_UPDATE);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,8 +47,8 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
         serviceManager.connect(this);
         final Handler handler = new Handler();
         drone = new Drone(serviceManager,handler);
-        pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(),drone);
-        registerReceiver(pebbleNotificationProvider.eventReceiver, pebbleNotificationProvider.eventFilter);
+        pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(), drone);
+        drone.registerDroneListener(this);
     }
 
 
@@ -53,7 +65,10 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
 
     @Override
     public void onServiceConnected() {
-
+        if(!drone.isStarted()) {
+            this.drone.start();
+            this.drone.registerDroneListener(this);
+        }
     }
 
     @Override
@@ -73,6 +88,10 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
             pebbleNotificationProvider=null;
         }else if(pebbleNotificationProvider == null) {
             pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(), drone);
+        }
+
+        if(pebbleNotificationProvider != null){
+            pebbleNotificationProvider.processData(new Intent(event));
         }
     }
 
