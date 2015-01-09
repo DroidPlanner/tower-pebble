@@ -45,55 +45,52 @@ public class PebbleNotificationProvider {
         eventFilter.addAction(AttributeEvent.FOLLOW_UPDATE);
     }
 
-    private final BroadcastReceiver eventReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-            if(AttributeEvent.STATE_CONNECTED.equals(action)){
-                PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
-            }
-            else if(AttributeEvent.STATE_VEHICLE_MODE.equals(action)
-                    || AttributeEvent.BATTERY_UPDATED.equals(action)
-                    ||AttributeEvent.SPEED_UPDATED.equals(action)){
-                sendDataToWatchIfTimeHasElapsed(dpApi);
-            }
-            else if((AttributeEvent.FOLLOW_START.equals(action)
-                    || AttributeEvent.FOLLOW_STOP.equals(action))) {
-                sendDataToWatchIfTimeHasElapsed(dpApi);
+    public void processDroneIntent(Intent intent) {
+        final String action = intent.getAction();
+        if(AttributeEvent.STATE_CONNECTED.equals(action)){
+            PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
+        }
+        else if(AttributeEvent.STATE_VEHICLE_MODE.equals(action)
+                || AttributeEvent.BATTERY_UPDATED.equals(action)
+                ||AttributeEvent.SPEED_UPDATED.equals(action)){
+            sendDataToWatchIfTimeHasElapsed(dpApi);
+        }
+        else if((AttributeEvent.FOLLOW_START.equals(action)
+                || AttributeEvent.FOLLOW_STOP.equals(action))) {
+            sendDataToWatchIfTimeHasElapsed(dpApi);
 
-                FollowState followState = dpApi.getAttribute(AttributeType.FOLLOW_STATE);
-                if(followState != null) {
-                    String eventLabel = null;
-                    switch (followState.getState()) {
-                        case FollowState.STATE_START:
-                        case FollowState.STATE_RUNNING:
-                            eventLabel = "FollowMe enabled";
-                            break;
+            FollowState followState = dpApi.getAttribute(AttributeType.FOLLOW_STATE);
+            if(followState != null) {
+                String eventLabel = null;
+                switch (followState.getState()) {
+                    case FollowState.STATE_START:
+                    case FollowState.STATE_RUNNING:
+                        eventLabel = "FollowMe enabled";
+                        break;
 
-                        case FollowState.STATE_END:
-                            eventLabel = "FollowMe disabled";
-                            break;
+                    case FollowState.STATE_END:
+                        eventLabel = "FollowMe disabled";
+                        break;
 
-                        case FollowState.STATE_INVALID:
-                            eventLabel = "FollowMe error: invalid state";
-                            break;
+                    case FollowState.STATE_INVALID:
+                        eventLabel = "FollowMe error: invalid state";
+                        break;
 
-                        case FollowState.STATE_DRONE_DISCONNECTED:
-                            eventLabel = "FollowMe error: drone not connected";
-                            break;
+                    case FollowState.STATE_DRONE_DISCONNECTED:
+                        eventLabel = "FollowMe error: drone not connected";
+                        break;
 
-                        case FollowState.STATE_DRONE_NOT_ARMED:
-                            eventLabel = "FollowMe error: drone not armed";
-                            break;
-                    }
+                    case FollowState.STATE_DRONE_NOT_ARMED:
+                        eventLabel = "FollowMe error: drone not armed";
+                        break;
+                }
 
-                    if (eventLabel != null) {
-                        Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
-                    }
+                if (eventLabel != null) {
+                    Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
                 }
             }
         }
-    };
+    }
 
     /**
 	 * Application context.
@@ -114,9 +111,6 @@ public class PebbleNotificationProvider {
 		PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
 		datahandler = new PebbleReceiverHandler(DP_UUID);
 		PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
-
-        LocalBroadcastManager.getInstance(applicationContext).registerReceiver(eventReceiver,
-                eventFilter);
 	}
 
 	public void onTerminate() {
@@ -124,7 +118,6 @@ public class PebbleNotificationProvider {
 			applicationContext.unregisterReceiver(datahandler);
 			datahandler = null;
 		}
-        LocalBroadcastManager.getInstance(applicationContext).unregisterReceiver(eventReceiver);
 	}
 
 	/**
