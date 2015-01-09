@@ -48,6 +48,7 @@ public class OfflineWatchappInstallUtil {
                 intent.setData(Uri.fromFile(outFile));
                 intent.setClassName("com.getpebble.android",
                         "com.getpebble.android.ui.UpdateActivity");
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
             } catch (IOException e) {
                 Log.e("pebble", "Failed to copy pbw asset", e);
