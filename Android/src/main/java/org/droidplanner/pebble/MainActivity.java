@@ -43,6 +43,7 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }
+
         serviceManager = new ServiceManager(getApplicationContext());
         serviceManager.connect(this);
         final Handler handler = new Handler();

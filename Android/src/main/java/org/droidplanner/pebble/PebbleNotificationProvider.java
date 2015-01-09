@@ -1,16 +1,13 @@
 package org.droidplanner.pebble;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.widget.Toast;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.PebbleKit.PebbleDataReceiver;
 import com.getpebble.android.kit.util.PebbleDictionary;
 import com.o3dr.android.client.Drone;
-import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.property.Altitude;
@@ -35,6 +32,20 @@ public class PebbleNotificationProvider{
 
 	private static final UUID DP_UUID = UUID.fromString("1de866f1-22fa-4add-ba55-e7722167a3b4");
 	private static final String EXPECTED_APP_VERSION = "one";
+
+    private final Context applicationContext;
+    private final Drone dpApi;
+
+    long timeWhenLastTelemSent = System.currentTimeMillis();
+    private PebbleDataReceiver datahandler;
+
+    public PebbleNotificationProvider(Context context, Drone dpApi) {
+        this.dpApi = dpApi;
+        applicationContext = context;
+        PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
+        datahandler = new PebbleReceiverHandler(DP_UUID);
+        PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
+    }
 
     public void processData(Intent intent) {
         final String action = intent.getAction();
@@ -82,27 +93,6 @@ public class PebbleNotificationProvider{
             }
         }
     }
-
-    /**
-	 * Application context.
-	 */
-	private final Context applicationContext;
-
-    /**
-     * Handle to the dp api
-     */
-    private final Drone dpApi;
-
-	long timeWhenLastTelemSent = System.currentTimeMillis();
-	private PebbleDataReceiver datahandler;
-
-	public PebbleNotificationProvider(Context context, Drone dpApi) {
-        this.dpApi = dpApi;
-		applicationContext = context;
-		PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
-		datahandler = new PebbleReceiverHandler(DP_UUID);
-		PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
-	}
 
 	public void onTerminate() {
 		if (datahandler != null) {
