@@ -45,9 +45,9 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
         }
 
         serviceManager = new ServiceManager(getApplicationContext());
-        serviceManager.connect(this);
         final Handler handler = new Handler();
         drone = new Drone(serviceManager,handler);
+        serviceManager.connect(this);
         pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(), drone);
         drone.registerDroneListener(this);
     }
