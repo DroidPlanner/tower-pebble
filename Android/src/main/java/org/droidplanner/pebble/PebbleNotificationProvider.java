@@ -2,7 +2,6 @@ package org.droidplanner.pebble;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.widget.Toast;
 
 import com.getpebble.android.kit.PebbleKit;
@@ -11,10 +10,6 @@ import com.getpebble.android.kit.util.PebbleDictionary;
 import com.o3dr.android.client.Drone;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
-import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
-import com.o3dr.services.android.lib.drone.connection.ConnectionType;
-import com.o3dr.services.android.lib.drone.connection.DroneSharePrefs;
-import com.o3dr.services.android.lib.drone.connection.StreamRates;
 import com.o3dr.services.android.lib.drone.property.Altitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
 import com.o3dr.services.android.lib.drone.property.GuidedState;
@@ -40,13 +35,15 @@ public class PebbleNotificationProvider{
 
     private final Context applicationContext;
     private final Drone dpApi;
+    private final MainActivity mainActivity;
 
     long timeWhenLastTelemSent = System.currentTimeMillis();
     private PebbleDataReceiver datahandler;
 
-    public PebbleNotificationProvider(Context context, Drone dpApi) {
+    public PebbleNotificationProvider(Context context, MainActivity mainActivity, Drone dpApi) {
         this.dpApi = dpApi;
         applicationContext = context;
+        this.mainActivity = mainActivity;
         PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
         datahandler = new PebbleReceiverHandler(DP_UUID);
         PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
@@ -198,13 +195,8 @@ public class PebbleNotificationProvider{
             if(followMe == null)
                 return ;
 			PebbleKit.sendAckToPebble(applicationContext, transactionId);
-            if(!dpApi.isConnected()){
-                Bundle extraParams = new Bundle();
-                extraParams.putInt(ConnectionType.EXTRA_USB_BAUD_RATE, 57600);
-                final StreamRates streamRates = new StreamRates(10);
-                DroneSharePrefs droneSharePrefs = new DroneSharePrefs("","",false,false);
-                dpApi.connect(new ConnectionParameter(ConnectionType.TYPE_USB,extraParams,streamRates,droneSharePrefs));
-            }
+            mainActivity.connect3DRServices();
+
 			int request = (data.getInteger(KEY_PEBBLE_REQUEST).intValue());
 			switch (request) {
 

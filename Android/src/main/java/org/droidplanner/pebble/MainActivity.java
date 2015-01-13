@@ -17,7 +17,11 @@ import com.o3dr.android.client.ServiceManager;
 import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.android.client.interfaces.ServiceListener;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
+import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
 import com.o3dr.services.android.lib.drone.connection.ConnectionResult;
+import com.o3dr.services.android.lib.drone.connection.ConnectionType;
+import com.o3dr.services.android.lib.drone.connection.DroneSharePrefs;
+import com.o3dr.services.android.lib.drone.connection.StreamRates;
 
 public class MainActivity extends ActionBarActivity implements DroneListener, ServiceListener{
     PebbleNotificationProvider pebbleNotificationProvider;
@@ -43,13 +47,7 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }
-
-        serviceManager = new ServiceManager(getApplicationContext());
-        final Handler handler = new Handler();
-        drone = new Drone(serviceManager,handler);
-        serviceManager.connect(this);
-        pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(), drone);
-        drone.registerDroneListener(this);
+        pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(), this, drone);
     }
 
 
@@ -70,6 +68,13 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
             this.drone.start();
             this.drone.registerDroneListener(this);
         }
+        if(!drone.isConnected()){
+            Bundle extraParams = new Bundle();
+            extraParams.putInt(ConnectionType.EXTRA_USB_BAUD_RATE, 57600);
+            final StreamRates streamRates = new StreamRates(10);
+            DroneSharePrefs droneSharePrefs = new DroneSharePrefs("","",false,false);
+            drone.connect(new ConnectionParameter(ConnectionType.TYPE_USB,extraParams,streamRates,droneSharePrefs));
+        }
     }
 
     @Override
@@ -88,7 +93,7 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
             pebbleNotificationProvider.onTerminate();
             pebbleNotificationProvider=null;
         }else if(pebbleNotificationProvider == null) {
-            pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(), drone);
+            pebbleNotificationProvider = new PebbleNotificationProvider(getApplicationContext(), this, drone);
         }
 
         if(pebbleNotificationProvider != null){
@@ -112,5 +117,13 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
 
     public void installWatchapp(View view){
         OfflineWatchappInstallUtil.manualWatchappInstall(getApplicationContext());
+    }
+
+    public void connect3DRServices(){
+        serviceManager = new ServiceManager(getApplicationContext());
+        final Handler handler = new Handler();
+        drone = new Drone(serviceManager,handler);
+        serviceManager.connect(this);
+        drone.registerDroneListener(this);
     }
 }
