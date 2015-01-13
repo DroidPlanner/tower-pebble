@@ -119,7 +119,7 @@ static void buttons_draw(Layer *layer, GContext *ctx) {
 
 
  void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, void *context) {
-   // outgoing message failed
+      APP_LOG(APP_LOG_LEVEL_ERROR,"outbound msg dropped");
  }
 
 
@@ -142,8 +142,7 @@ static void buttons_draw(Layer *layer, GContext *ctx) {
            if(strcmp(mode,"Follow")==0)
                text_layer_set_text(follow_type_layer, follow_type);
            else
-               text_layer_set_text(follow_type_layer, "");
-         
+               text_layer_set_text(follow_type_layer, "");        
            break;
          case KEY_TELEM:
            text_layer_set_text(telem_layer,data);
@@ -160,7 +159,13 @@ static void buttons_draw(Layer *layer, GContext *ctx) {
 
 
  void in_dropped_handler(AppMessageResult reason, void *context) {
-   // incoming message dropped
+   APP_LOG(APP_LOG_LEVEL_ERROR,"inbound msg dropped");
+   if(reason==APP_MSG_BUFFER_OVERFLOW)
+        APP_LOG(APP_LOG_LEVEL_ERROR,"buffer overflow");
+   if(reason==APP_MSG_BUSY)
+        APP_LOG(APP_LOG_LEVEL_ERROR,"still busy");
+   if(reason==APP_MSG_OUT_OF_MEMORY)
+        APP_LOG(APP_LOG_LEVEL_ERROR,"out of memory");     
  }
 
 
@@ -189,7 +194,7 @@ static void window_load(Window *window) {
   
   telem_layer = text_layer_create((GRect) { .origin = { 10, 60 }, .size = { bounds.size.w-60, bounds.size.h-50 } });
   text_layer_set_overflow_mode(telem_layer, GTextOverflowModeWordWrap);
-  text_layer_set_text(telem_layer, "No telem. yet");
+  text_layer_set_text(telem_layer, "Click to retry");
   text_layer_set_text_alignment(telem_layer, GTextAlignmentLeft);
   text_layer_set_font(telem_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
   layer_add_child(window_layer, text_layer_get_layer(telem_layer));
