@@ -106,6 +106,15 @@ public class MainActivity extends ActionBarActivity implements DroneListener, Se
         drone.destroy();
     }
 
+    public void disconnectDroneAnd3DRServices() {
+        if(drone.isConnected()){
+            drone.disconnect();
+        }
+        if(serviceManager.isServiceConnected()){
+            serviceManager.disconnect();
+        }
+    }
+
     public static class PlaceholderFragment extends Fragment {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
