@@ -184,6 +184,8 @@ public class PebbleNotificationProvider{
 		private static final int KEY_REQUEST_CYCLE_FOLLOW_TYPE = 102;
 		private static final int KEY_REQUEST_PAUSE = 103;
 		private static final int KEY_REQUEST_MODE_RTL = 104;
+        private static final int KEY_REQUEST_CONNECT = 105;
+        private static final int KEY_REQUEST_DISCONNECT = 106;
 
 		protected PebbleReceiverHandler(UUID id) {
 			super(id);
@@ -195,34 +197,42 @@ public class PebbleNotificationProvider{
             if(followMe == null)
                 return ;
 			PebbleKit.sendAckToPebble(applicationContext, transactionId);
+            //connect if not connected yet
             mainActivity.connect3DRServices();
 
 			int request = (data.getInteger(KEY_PEBBLE_REQUEST).intValue());
 			switch (request) {
 
-			case KEY_REQUEST_MODE_FOLLOW:
-                if(followMe.isEnabled()){
-                    dpApi.disableFollowMe();
-                }
-                else {
-                    dpApi.enableFollowMe(followMe.getMode());
-                }
-				break;
+                case KEY_REQUEST_CONNECT:
+                    //Not needed. Any KEY_REQUEST_... should attempt connect.  See above.
+                    break;
 
-			case KEY_REQUEST_CYCLE_FOLLOW_TYPE:
-                List<FollowType> followTypes = Arrays.asList(FollowType.values());
-                int currentTypeIndex = followTypes.indexOf(followMe.getMode());
-                int nextTypeIndex = currentTypeIndex++ % followTypes.size();
-                dpApi.enableFollowMe(followTypes.get(nextTypeIndex));
-				break;
+                case KEY_REQUEST_DISCONNECT:
+                    mainActivity.disconnectDroneAnd3DRServices();
 
-			case KEY_REQUEST_PAUSE:
-				dpApi.pauseAtCurrentLocation();
-				break;
+                case KEY_REQUEST_MODE_FOLLOW:
+                    if(followMe.isEnabled()){
+                        dpApi.disableFollowMe();
+                    }
+                    else {
+                        dpApi.enableFollowMe(followMe.getMode());
+                    }
+                    break;
 
-			case KEY_REQUEST_MODE_RTL:
-				dpApi.changeVehicleMode(VehicleMode.COPTER_RTL);
-				break;
+                case KEY_REQUEST_CYCLE_FOLLOW_TYPE:
+                    List<FollowType> followTypes = Arrays.asList(FollowType.values());
+                    int currentTypeIndex = followTypes.indexOf(followMe.getMode());
+                    int nextTypeIndex = currentTypeIndex++ % followTypes.size();
+                    dpApi.enableFollowMe(followTypes.get(nextTypeIndex));
+                    break;
+
+                case KEY_REQUEST_PAUSE:
+                    dpApi.pauseAtCurrentLocation();
+                    break;
+
+                case KEY_REQUEST_MODE_RTL:
+                    dpApi.changeVehicleMode(VehicleMode.COPTER_RTL);
+                    break;
 			}
 		}
 	}
