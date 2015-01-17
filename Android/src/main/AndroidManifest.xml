@@ -17,6 +17,8 @@
             </intent-filter>
         </receiver>
 
+        <Service android:name=".PebbleCommunicatorService" />
+
         <activity
             android:name="org.droidplanner.pebble.MainActivity"
             android:label="@string/app_name" >
