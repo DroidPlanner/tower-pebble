@@ -193,12 +193,14 @@ public class PebbleNotificationProvider{
 
 		@Override
 		public void receiveData(Context context, int transactionId, PebbleDictionary data) {
-			FollowState followMe = dpApi.getAttribute(AttributeType.FOLLOW_STATE);
-            if(followMe == null)
-                return ;
 			PebbleKit.sendAckToPebble(applicationContext, transactionId);
             //connect if not connected yet
             mainActivity.connect3DRServices();
+            if(dpApi != null && dpApi.isConnected() )
+                return;
+			FollowState followMe = dpApi.getAttribute(AttributeType.FOLLOW_STATE);
+            if(followMe == null)
+                return ;
 
 			int request = (data.getInteger(KEY_PEBBLE_REQUEST).intValue());
 			switch (request) {
