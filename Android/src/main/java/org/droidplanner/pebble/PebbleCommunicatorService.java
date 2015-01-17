@@ -71,9 +71,13 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     }
 
     public void connect3DRServices() {
-        serviceManager = new ServiceManager(applicationContext);
+        if(serviceManager == null){
+            serviceManager = new ServiceManager(applicationContext);
+        }
         final Handler handler = new Handler();
-        drone = new Drone(serviceManager, handler);
+        if(drone == null){
+            drone = new Drone(serviceManager, handler);
+        }
         serviceManager.connect(this);
         drone.registerDroneListener(this);
     }
