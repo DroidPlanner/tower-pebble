@@ -1,9 +1,11 @@
 package org.droidplanner.pebble;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -48,6 +50,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     private ServiceManager serviceManager;
     private Drone drone;
 
+    private boolean isForeground = false;
     long timeWhenLastTelemSent = System.currentTimeMillis();
     private PebbleKit.PebbleDataReceiver datahandler;
 
@@ -79,6 +82,16 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         if(drone == null){
             drone = new Drone(serviceManager, handler);
             drone.registerDroneListener(this);
+        }
+        if(!isForeground) {
+            final Notification.Builder notificationBuilder = new Notification.Builder(applicationContext).
+                    setContentTitle("DP-Pebble Running").
+                    setSmallIcon(R.drawable.ic_launcher);
+            final Notification notification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
+                    ? notificationBuilder.build()
+                    : notificationBuilder.getNotification();
+            startForeground(1, notification);
+            isForeground = true;
         }
     }
 
@@ -156,13 +169,13 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             drone.unregisterDroneListener(this);
             drone = null;
         }
-        if (serviceManager == null) {
+        if (serviceManager != null) {
             serviceManager.disconnect();
             serviceManager = null;
         }
-        if (datahandler != null) {
-            applicationContext.unregisterReceiver(datahandler);
-            datahandler = null;
+        if(isForeground){
+            stopForeground(true);
+            isForeground = false;
         }
     }
 
