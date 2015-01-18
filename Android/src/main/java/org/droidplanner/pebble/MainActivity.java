@@ -2,6 +2,7 @@ package org.droidplanner.pebble;
 
 import android.app.ActivityManager;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBarActivity;
@@ -60,5 +61,12 @@ public class MainActivity extends ActionBarActivity {
 
     public void installWatchapp(View view){
         OfflineWatchappInstallUtil.manualWatchappInstall(getApplicationContext());
+    }
+
+    public void openIssueTracker(View view){
+        String url = "https://github.com/DroidPlanner/dp-pebble/issues";
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setData(Uri.parse(url));
+        startActivity(i);
     }
 }
