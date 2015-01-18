@@ -73,13 +73,13 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     public void connect3DRServices() {
         if(serviceManager == null){
             serviceManager = new ServiceManager(applicationContext);
+            serviceManager.connect(this);
         }
         final Handler handler = new Handler();
         if(drone == null){
             drone = new Drone(serviceManager, handler);
+            drone.registerDroneListener(this);
         }
-        serviceManager.connect(this);
-        drone.registerDroneListener(this);
     }
 
     //Runs when 3dr-services is connected.  Immediately connects to drone.
@@ -100,55 +100,60 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
     @Override
     public void onDroneEvent(String event, Bundle bundle) {
-        final String action = new Intent(event).getAction();
-        if (AttributeEvent.STATE_DISCONNECTED.equals(action)){
-            onDestroy();
-        } else if (AttributeEvent.STATE_CONNECTED.equals(action)) {
-            PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
-        } else if (AttributeEvent.STATE_VEHICLE_MODE.equals(action)
-                || AttributeEvent.BATTERY_UPDATED.equals(action)
-                || AttributeEvent.SPEED_UPDATED.equals(action)) {
-            sendDataToWatchIfTimeHasElapsed(drone);
-        } else if ((AttributeEvent.FOLLOW_START.equals(action)
-                || AttributeEvent.FOLLOW_STOP.equals(action))) {
-            sendDataToWatchIfTimeHasElapsed(drone);
+        try {
+            final String action = new Intent(event).getAction();
+            if (AttributeEvent.STATE_DISCONNECTED.equals(action)) {
+                onDestroy();
+            } else if (AttributeEvent.STATE_CONNECTED.equals(action)) {
+                PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
+            } else if (AttributeEvent.STATE_VEHICLE_MODE.equals(action)
+                    || AttributeEvent.BATTERY_UPDATED.equals(action)
+                    || AttributeEvent.SPEED_UPDATED.equals(action)) {
+                sendDataToWatchIfTimeHasElapsed(drone);
+            } else if ((AttributeEvent.FOLLOW_START.equals(action)
+                    || AttributeEvent.FOLLOW_STOP.equals(action))) {
+                sendDataToWatchIfTimeHasElapsed(drone);
 
-            FollowState followState = drone.getAttribute(AttributeType.FOLLOW_STATE);
-            if (followState != null) {
-                String eventLabel = null;
-                switch (followState.getState()) {
-                    case FollowState.STATE_START:
-                    case FollowState.STATE_RUNNING:
-                        eventLabel = "FollowMe enabled";
-                        break;
+                FollowState followState = drone.getAttribute(AttributeType.FOLLOW_STATE);
+                if (followState != null) {
+                    String eventLabel = null;
+                    switch (followState.getState()) {
+                        case FollowState.STATE_START:
+                        case FollowState.STATE_RUNNING:
+                            eventLabel = "FollowMe enabled";
+                            break;
 
-                    case FollowState.STATE_END:
-                        eventLabel = "FollowMe disabled";
-                        break;
+                        case FollowState.STATE_END:
+                            eventLabel = "FollowMe disabled";
+                            break;
 
-                    case FollowState.STATE_INVALID:
-                        eventLabel = "FollowMe error: invalid state";
-                        break;
+                        case FollowState.STATE_INVALID:
+                            eventLabel = "FollowMe error: invalid state";
+                            break;
 
-                    case FollowState.STATE_DRONE_DISCONNECTED:
-                        eventLabel = "FollowMe error: drone not connected";
-                        break;
+                        case FollowState.STATE_DRONE_DISCONNECTED:
+                            eventLabel = "FollowMe error: drone not connected";
+                            break;
 
-                    case FollowState.STATE_DRONE_NOT_ARMED:
-                        eventLabel = "FollowMe error: drone not armed";
-                        break;
-                }
+                        case FollowState.STATE_DRONE_NOT_ARMED:
+                            eventLabel = "FollowMe error: drone not armed";
+                            break;
+                    }
 
-                if (eventLabel != null) {
-                    Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
+                    if (eventLabel != null) {
+                        Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
+        }catch(Exception e){
+            //TODO figure out what was messing up here
         }
     }
 
     public void onDestroy() {
         if (drone != null) {
             drone.disconnect();
+            drone.unregisterDroneListener(this);
             drone = null;
         }
         if (serviceManager == null) {
@@ -254,11 +259,9 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             PebbleKit.sendAckToPebble(applicationContext, transactionId);
             //connect if not connected yet
             connect3DRServices();
-            if (drone != null && drone.isConnected())
+            if (drone == null || !drone.isConnected())
                 return;
             FollowState followMe = drone.getAttribute(AttributeType.FOLLOW_STATE);
-            if (followMe == null)
-                return;
 
             int request = (data.getInteger(KEY_PEBBLE_REQUEST).intValue());
             switch (request) {
@@ -269,6 +272,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
                 case KEY_REQUEST_DISCONNECT:
                     onDestroy();
+                    break;
 
                 case KEY_REQUEST_MODE_FOLLOW:
                     if (followMe.isEnabled()) {
