@@ -73,6 +73,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         return START_STICKY;
     }
 
+    @TargetApi(16)
     public void connect3DRServices() {
         if(serviceManager == null){
             serviceManager = new ServiceManager(applicationContext);
