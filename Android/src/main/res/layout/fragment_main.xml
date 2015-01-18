@@ -21,4 +21,14 @@
         android:layout_below="@+id/textView"
         android:onClick="installWatchapp"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/issue_button_title"
+        android:id="@+id/issue_button"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="102dp"
+        android:layout_below="@+id/textView"
+        android:onClick="openIssueTracker"/>
 </RelativeLayout>
