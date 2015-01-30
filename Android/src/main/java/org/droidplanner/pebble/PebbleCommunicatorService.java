@@ -49,9 +49,9 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
     private Context applicationContext;
     private ServiceManager serviceManager;
+    private ConnectionParameter connParams;
     private Drone drone;
 
-    private boolean isForeground = false;
     long timeWhenLastTelemSent = System.currentTimeMillis();
     private PebbleKit.PebbleDataReceiver datahandler;
 
@@ -68,10 +68,19 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     //Start the dp-pebble background service
     @Override
     public int onStartCommand(Intent intent, int flags, int startid) {
-        applicationContext = getBaseContext();
-        datahandler = new PebbleReceiverHandler(DP_UUID);
-        PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
-        return START_STICKY;
+        final String action = intent.getAction();
+        switch(action){
+            case GCSEvent.ACTION_VEHICLE_CONNECTION:
+                applicationContext = getBaseContext();
+                datahandler = new PebbleReceiverHandler(DP_UUID);
+                PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
+                connParams=intent.getParcelableExtra("extra_connection_parameter");
+                connect3DRServices();
+                return START_STICKY;
+            case GCSEvent.ACTION_VEHICLE_DISCONNECTION:
+                onDestroy();
+                break;
+        }
     }
 
     @SuppressLint("NewAPI")
@@ -85,16 +94,13 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             drone = new Drone(serviceManager, handler);
             drone.registerDroneListener(this);
         }
-        if(!isForeground) {
-            final Notification.Builder notificationBuilder = new Notification.Builder(applicationContext).
-                    setContentTitle("DP-Pebble Running").
-                    setSmallIcon(R.drawable.ic_launcher);
-            final Notification notification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
-                    ? notificationBuilder.build()
-                    : notificationBuilder.getNotification();
-            startForeground(1, notification);
-            isForeground = true;
-        }
+        final Notification.Builder notificationBuilder = new Notification.Builder(applicationContext).
+                setContentTitle("DP-Pebble Running").
+                setSmallIcon(R.drawable.ic_launcher);
+        final Notification notification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
+                ? notificationBuilder.build()
+                : notificationBuilder.getNotification();
+        startForeground(1, notification);
     }
 
     //Runs when 3dr-services is connected.  Immediately connects to drone.
@@ -104,12 +110,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             this.drone.start();
             this.drone.registerDroneListener(this);
         }
-        if (!drone.isConnected()) {
-            Bundle extraParams = new Bundle();
-            extraParams.putInt(ConnectionType.EXTRA_USB_BAUD_RATE, 57600);
-            final StreamRates streamRates = new StreamRates(10);
-            DroneSharePrefs droneSharePrefs = new DroneSharePrefs("", "", false, false);
-            drone.connect(new ConnectionParameter(ConnectionType.TYPE_USB, extraParams, streamRates, droneSharePrefs));
+        if (!drone.isConnected()&&connParams!=null) {
+            drone.connect(connParams);
         }
     }
 
@@ -175,10 +177,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             serviceManager.disconnect();
             serviceManager = null;
         }
-        if(isForeground){
-            stopForeground(true);
-            isForeground = false;
-        }
+        //TODO tell pebble to disconnect itself
+        stopSelf();
     }
 
     private double roundToOneDecimal(double value) {
@@ -272,8 +272,6 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         @Override
         public void receiveData(Context context, int transactionId, PebbleDictionary data) {
             PebbleKit.sendAckToPebble(applicationContext, transactionId);
-            //connect if not connected yet
-            connect3DRServices();
             if (drone == null || !drone.isConnected())
                 return;
             FollowState followMe = drone.getAttribute(AttributeType.FOLLOW_STATE);
@@ -282,7 +280,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             switch (request) {
 
                 case KEY_REQUEST_CONNECT:
-                    //Not needed. Any KEY_REQUEST_... should attempt connect.  See above.
+                    //not needed.  connections are expected to be made using a real GCS.
                     break;
 
                 case KEY_REQUEST_DISCONNECT:
