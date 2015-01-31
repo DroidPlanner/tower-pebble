@@ -29,9 +29,9 @@ public class OfflineWatchappInstallUtil {
             InputStream in = null;
             OutputStream out = null;
             try {
-                in = context.getAssets().open("DroidPlanner.pbw");
+                in = context.getAssets().open("Tower.pbw");
                 File outFile = new File(Environment.getExternalStorageDirectory().getPath(),
-                        "DroidPlanner.pbw");
+                        "Tower.pbw");
                 out = new FileOutputStream(outFile);
                 byte[] buffer = new byte[1024];
                 int read;
