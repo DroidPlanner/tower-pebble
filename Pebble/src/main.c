@@ -16,6 +16,7 @@ enum {
   KEY_FOLLOW_TYPE = 1,
   KEY_TELEM = 2,
   KEY_APP_VERSION=3,
+  KEY_KILL_SELF=4,
   KEY_PEBBLE_REQUEST = 100,
   KEY_REQUEST_MODE_FOLLOW = 101,
   KEY_REQUEST_CYCLE_FOLLOW_TYPE=102,
@@ -154,6 +155,10 @@ static void buttons_draw(Layer *layer, GContext *ctx) {
              request_new_app_version();
              return;
            }
+         case KEY_KILL_SELF:
+           if(strcmp(data,"true")!=0){
+             deinit();
+           }
        }
      }
    }
@@ -194,9 +199,9 @@ static void window_load(Window *window) {
   text_layer_set_font(follow_type_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(follow_type_layer));
   
-  telem_layer = text_layer_create((GRect) { .origin = { 10, 60 }, .size = { bounds.size.w-60, bounds.size.h-50 } });
+  telem_layer = text_layer_create((GRect) { .origin = { 5, 60 }, .size = { bounds.size.w-60+5, bounds.size.h-50 } });
   text_layer_set_overflow_mode(telem_layer, GTextOverflowModeWordWrap);
-  text_layer_set_text(telem_layer, "Click any button to retry");
+  text_layer_set_text(telem_layer, "Not working? Run Tower-Pebble");
   text_layer_set_text_alignment(telem_layer, GTextAlignmentLeft);
   text_layer_set_font(telem_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24));
   layer_add_child(window_layer, text_layer_get_layer(telem_layer));
@@ -227,13 +232,13 @@ static void init(void) {
   const uint32_t outbound_size = 16;
   app_message_open(inbound_size, outbound_size);
   app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
-  send_mode_change_request(KEY_REQUEST_CONNECT);
 }
 
 static void deinit(void) {
-  send_mode_change_request(KEY_REQUEST_DISCONNECT);
-  window_destroy(window);
   app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
+  send_mode_change_request(KEY_REQUEST_DISCONNECT);
+  psleep(750);
+  window_destroy(window);
 }
 
 int main(void) {
