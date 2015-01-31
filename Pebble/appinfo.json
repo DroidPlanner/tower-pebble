@@ -8,7 +8,7 @@
     "resources": {
         "media": [
             {
-                "file": "images/pebble_icon.png",
+                "file": "images/icon.png",
                 "menuIcon": true,
                 "name": "icon",
                 "type": "png"
