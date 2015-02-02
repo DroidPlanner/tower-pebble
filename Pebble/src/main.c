@@ -16,7 +16,6 @@ enum {
   KEY_FOLLOW_TYPE = 1,
   KEY_TELEM = 2,
   KEY_APP_VERSION=3,
-  KEY_KILL_SELF=4,
   KEY_PEBBLE_REQUEST = 100,
   KEY_REQUEST_MODE_FOLLOW = 101,
   KEY_REQUEST_CYCLE_FOLLOW_TYPE=102,
@@ -154,10 +153,6 @@ static void buttons_draw(Layer *layer, GContext *ctx) {
            if(strcmp(data,APP_VERSION)!=0){
              request_new_app_version();
              return;
-           }
-         case KEY_KILL_SELF:
-           if(strcmp(data,"true")!=0){
-             deinit();
            }
        }
      }
