@@ -73,6 +73,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                 applicationContext = getBaseContext();
                 datahandler = new PebbleReceiverHandler(DP_UUID);
                 PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
+                PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
                 connParams=intent.getParcelableExtra("extra_connection_parameter");
                 connect3DRServices();
                 return START_STICKY;
@@ -178,7 +179,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             controlTower.disconnect();
             controlTower = null;
         }
-        //TODO tell pebble to disconnect itself
+        PebbleKit.closeAppOnPebble(applicationContext, DP_UUID);
         stopSelf();
     }
 
