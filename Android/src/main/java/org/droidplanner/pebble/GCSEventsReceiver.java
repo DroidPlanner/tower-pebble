@@ -16,7 +16,7 @@ public class GCSEventsReceiver extends BroadcastReceiver {
         Intent intent = new Intent(context, PebbleCommunicatorService.class);
         intent.setAction(arg.getAction());
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("extra_connection_parameter", connParams));
+        intent.putExtra("extra_connection_parameter", connParams);
         context.startService(intent);
     }
 }
