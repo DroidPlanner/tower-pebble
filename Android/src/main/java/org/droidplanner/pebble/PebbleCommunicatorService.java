@@ -97,7 +97,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         }
         final Notification.Builder notificationBuilder = new Notification.Builder(applicationContext).
                 setContentTitle("DP-Pebble Running").
-                setSmallIcon(R.drawable.ic_launcher);
+                setSmallIcon(R.drawable.ic_stat_notification);
         final Notification notification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
                 ? notificationBuilder.build()
                 : notificationBuilder.getNotification();
