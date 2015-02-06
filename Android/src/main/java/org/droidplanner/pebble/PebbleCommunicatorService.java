@@ -52,7 +52,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     private final Handler handler = new Handler();
 
     long timeWhenLastTelemSent = System.currentTimeMillis();
-    private PebbleKit.PebbleDataReceiver datahandler;
+    private PebbleKit.PebbleDataReceiver pebbleDataHandler;
 
     //TODO use this eventFilter
     public final static IntentFilter eventFilter = new IntentFilter();
@@ -71,8 +71,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         switch(action){
             case GCSEvent.ACTION_VEHICLE_CONNECTION:
                 applicationContext = getBaseContext();
-                datahandler = new PebbleReceiverHandler(DP_UUID);
-                PebbleKit.registerReceivedDataHandler(applicationContext, datahandler);
+                pebbleDataHandler = new PebbleReceiverHandler(DP_UUID);
+                PebbleKit.registerReceivedDataHandler(applicationContext, pebbleDataHandler);
                 PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
                 connParams=intent.getParcelableExtra("extra_connection_parameter");
                 connect3DRServices();
@@ -86,15 +86,12 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
     @SuppressLint("NewAPI")
     public void connect3DRServices() {
-        if(controlTower == null){
-            controlTower = new ControlTower(applicationContext);
-            controlTower.connect(this);
-        }
-        if(drone == null){
-            drone = new Drone();
-            controlTower.registerDrone(drone, handler);
-            drone.registerDroneListener(this);
-        }
+        if(controlTower!=null && controlTower.isTowerConnected())
+            return;
+
+        controlTower = new ControlTower(applicationContext);
+        controlTower.connect(this);
+
         final Notification.Builder notificationBuilder = new Notification.Builder(applicationContext).
                 setContentTitle("DP-Pebble Running").
                 setSmallIcon(R.drawable.ic_stat_notification);
@@ -107,6 +104,9 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     //Runs when 3dr-services is connected.  Immediately connects to drone.
     @Override
     public void onTowerConnected() {
+        if(drone==null){
+            drone = new Drone();
+        }
         if (!drone.isStarted()) {
             controlTower.registerDrone(drone, handler);
             this.drone.registerDroneListener(this);
@@ -121,7 +121,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         try {
             final String action = new Intent(event).getAction();
             if (AttributeEvent.STATE_DISCONNECTED.equals(action)) {
-                onDestroy();
+                stopSelf();
             } else if (AttributeEvent.STATE_CONNECTED.equals(action)) {
                 PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
             } else if (AttributeEvent.STATE_VEHICLE_MODE.equals(action)
@@ -168,6 +168,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         }
     }
 
+    @Override
     public void onDestroy() {
         if (drone != null) {
             drone.disconnect();
@@ -179,8 +180,9 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             controlTower.disconnect();
             controlTower = null;
         }
-        PebbleKit.closeAppOnPebble(applicationContext, DP_UUID);
-        stopSelf();
+        //PebbleKit.closeAppOnPebble(applicationContext, DP_UUID);
+        pebbleDataHandler = null;
+        this.stopForeground(true);
     }
 
     private double roundToOneDecimal(double value) {
@@ -286,7 +288,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     break;
 
                 case KEY_REQUEST_DISCONNECT:
-                    onDestroy();
+                    stopSelf();
                     break;
 
                 case KEY_REQUEST_MODE_FOLLOW:
