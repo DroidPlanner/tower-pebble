@@ -182,7 +182,7 @@ static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  mode_layer = text_layer_create((GRect) { .origin = { 10, 0 }, .size = { bounds.size.w-50, 35 } });
+  mode_layer = text_layer_create((GRect) { .origin = { 5, 0 }, .size = { bounds.size.w-45, 35 } });
   text_layer_set_text(mode_layer, "No Conn.");
   text_layer_set_text_alignment(mode_layer, GTextAlignmentLeft);
   text_layer_set_font(mode_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
