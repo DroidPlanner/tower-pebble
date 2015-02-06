@@ -78,7 +78,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                 connect3DRServices();
                 return START_STICKY;
             case GCSEvent.ACTION_VEHICLE_DISCONNECTION:
-                onDestroy();
+                PebbleKit.closeAppOnPebble(getApplicationContext(), DP_UUID);
+                stopSelf();
                 return START_NOT_STICKY;
         }
         return START_NOT_STICKY;
@@ -121,6 +122,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         try {
             final String action = new Intent(event).getAction();
             if (AttributeEvent.STATE_DISCONNECTED.equals(action)) {
+                PebbleKit.closeAppOnPebble(applicationContext, DP_UUID);
                 stopSelf();
             } else if (AttributeEvent.STATE_CONNECTED.equals(action)) {
                 PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
@@ -180,7 +182,6 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             controlTower.disconnect();
             controlTower = null;
         }
-        //PebbleKit.closeAppOnPebble(applicationContext, DP_UUID);
         pebbleDataHandler = null;
         this.stopForeground(true);
     }
