@@ -3,7 +3,6 @@
     package="org.droidplanner.pebble" >
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -11,9 +10,11 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
 
-        <receiver android:name=".Autostart">
+        <receiver android:name=".GCSEventsReceiver"
+            android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.o3dr.services.android.lib.gcs.event.action.VEHICLE_CONNECTION" />
+                <action android:name="com.o3dr.services.android.lib.gcs.event.action.VEHICLE_DISCONNECTION" />
             </intent-filter>
         </receiver>
 

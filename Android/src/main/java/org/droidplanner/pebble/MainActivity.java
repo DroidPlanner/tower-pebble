@@ -22,7 +22,8 @@ public class MainActivity extends ActionBarActivity {
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }
-        if(!isMyServiceRunning(PebbleCommunicatorService.class)){
+        if(!isMyServiceRunning(PebbleCommunicatorService.class)&&false){//TODO start service if it's
+                                // not running and a vehicle is already connected via a different app
             Intent intent = new Intent(getApplicationContext(), PebbleCommunicatorService.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getApplicationContext().startService(intent);
