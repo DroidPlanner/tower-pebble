@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">dp-pebble</string>
-    <string name="intro_text">This app handles communication between 3DR-Services and the dp-pebble
+    <string name="app_name">Tower-Pebble</string>
+    <string name="intro_text">This app handles communication between 3DR-Services and the Tower
         watchapp.  No need to start this app, it works in the background.</string>
-    <string name="install_button_title">Install DP watchapp</string>
+    <string name="install_button_title">Install Tower watchapp</string>
     <string name="issue_button_title">Report an Issue</string>string>
 
 </resources>
