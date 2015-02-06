@@ -4,7 +4,7 @@
         ""
     ],
     "companyName": "squilter",
-    "longName": "DroidPlanner",
+    "longName": "Tower",
     "resources": {
         "media": [
             {
@@ -15,7 +15,7 @@
             }
         ]
     },
-    "shortName": "DroidPlanner",
+    "shortName": "Tower",
     "uuid": "1de866f1-22fa-4add-ba55-e7722167a3b4",
     "versionCode": 1,
     "versionLabel": "1.0",
