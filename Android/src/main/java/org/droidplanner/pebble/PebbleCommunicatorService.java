@@ -186,8 +186,11 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         this.stopForeground(true);
     }
 
-    private double roundToOneDecimal(double value) {
-        return (double) Math.round(value * 10) / 10;
+    private double roundToTwoDigits(double value) {
+        if(value>10)//If greater than 10, lop off the decimal
+            return Math.round(value);
+        else//otherwise otherwise keep the first decimal and lop off the rest
+            return (double) Math.round(value * 10) / 10;
     }
 
     /**
@@ -245,13 +248,18 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         Double battVoltage = droneBattery.getBatteryVoltage();
         if (battVoltage != null)
             battVoltage = 0.0;
-        String bat = "Bat:" + Double.toString(roundToOneDecimal(battVoltage)) + "V";
+        String bat = "Bat:" + Double.toString(roundToTwoDigits(battVoltage)) + "V";
 
         final Speed droneSpeed = drone.getAttribute(AttributeType.SPEED);
-        String speed = "Speed: " + Double.toString(roundToOneDecimal(droneSpeed.getAirSpeed()));
+        String speedValue = Double.toString(roundToTwoDigits(droneSpeed.getAirSpeed()));
+        //Chop off '.0' if that's what it ends with
+        if(speedValue.substring(speedValue.length()-2,speedValue.length()).equals(".0")){
+            speedValue = speedValue.substring(0,speedValue.length()-2);
+        }
+        String speed = "Spd: " + speedValue + "m/s";
 
         final Altitude droneAltitude = drone.getAttribute(AttributeType.ALTITUDE);
-        String altitude = "Alt: " + Double.toString(roundToOneDecimal(droneAltitude.getAltitude()));
+        String altitude = "Alt: " + Double.toString(roundToTwoDigits(droneAltitude.getAltitude())) + "m";
         String telem = bat + "\n" + altitude + "\n" + speed;
         data.addString(KEY_TELEM, telem);
 
