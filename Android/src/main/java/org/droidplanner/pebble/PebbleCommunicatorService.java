@@ -45,12 +45,15 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     private static final UUID DP_UUID = UUID.fromString("1de866f1-22fa-4add-ba55-e7722167a3b4");
     private static final String EXPECTED_APP_VERSION = "one";
 
+    public static final String ACTION_CHECK_CONNECTION_STATE = "org.droidplanner.pebble.action.CHECK_CONNECTION_STATE";
+
     private Context applicationContext;
     private ControlTower controlTower;
     private ConnectionParameter connParams;
     private Drone drone;
     private final Handler handler = new Handler();
 
+    private String lastReceivedAction = null;
     long timeWhenLastTelemSent = System.currentTimeMillis();
     private PebbleKit.PebbleDataReceiver pebbleDataHandler;
 
@@ -64,33 +67,58 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         eventFilter.addAction(AttributeEvent.FOLLOW_UPDATE);
     }
 
+    @Override
+    public void onCreate(){
+        super.onCreate();
+        applicationContext = getApplicationContext();
+        pebbleDataHandler = new PebbleReceiverHandler(DP_UUID);
+        PebbleKit.registerReceivedDataHandler(applicationContext, pebbleDataHandler);
+
+        controlTower = new ControlTower(applicationContext);
+        this.drone = new Drone();
+    }
+
     //Start the dp-pebble background service
     @Override
     public int onStartCommand(Intent intent, int flags, int startid) {
-        final String action = intent.getAction();
-        switch(action){
-            case GCSEvent.ACTION_VEHICLE_CONNECTION:
-                applicationContext = getBaseContext();
-                pebbleDataHandler = new PebbleReceiverHandler(DP_UUID);
-                PebbleKit.registerReceivedDataHandler(applicationContext, pebbleDataHandler);
-                PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
-                connParams=intent.getParcelableExtra("extra_connection_parameter");
-                connect3DRServices();
-                return START_STICKY;
-            case GCSEvent.ACTION_VEHICLE_DISCONNECTION:
-                PebbleKit.closeAppOnPebble(getApplicationContext(), DP_UUID);
-                stopSelf();
-                return START_NOT_STICKY;
+        if(intent != null) {
+            final String action = intent.getAction();
+            lastReceivedAction = action;
+            switch (action) {
+                case GCSEvent.ACTION_VEHICLE_CONNECTION:
+                    PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
+                    connParams = intent.getParcelableExtra("extra_connection_parameter");
+                    connect3DRServices();
+                    break;
+
+                case GCSEvent.ACTION_VEHICLE_DISCONNECTION:
+                    PebbleKit.closeAppOnPebble(getApplicationContext(), DP_UUID);
+                    stopSelf();
+                    break;
+
+                case ACTION_CHECK_CONNECTION_STATE:
+                    if (!drone.isConnected()) {
+                        if(controlTower.isTowerConnected()){
+                            checkConnectedApps();
+                        }
+                        else{
+                            connect3DRServices();
+                        }
+                    }
+                    break;
+
+            }
         }
-        return START_NOT_STICKY;
+
+        //Using redeliver intent because we want the intent to be resend if the service is killed.
+        return START_REDELIVER_INTENT;
     }
 
     @SuppressLint("NewAPI")
     public void connect3DRServices() {
-        if(controlTower!=null && controlTower.isTowerConnected())
+        if(controlTower.isTowerConnected())
             return;
 
-        controlTower = new ControlTower(applicationContext);
         controlTower.connect(this);
 
         final Notification.Builder notificationBuilder = new Notification.Builder(applicationContext).
@@ -105,14 +133,43 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     //Runs when 3dr-services is connected.  Immediately connects to drone.
     @Override
     public void onTowerConnected() {
-        if(drone==null){
-            drone = new Drone();
-        }
+
         if (!drone.isStarted()) {
             controlTower.registerDrone(drone, handler);
             this.drone.registerDroneListener(this);
         }
-        if (!drone.isConnected() && connParams!=null) {
+
+        switch(lastReceivedAction) {
+            case GCSEvent.ACTION_VEHICLE_CONNECTION:
+                connectDrone();
+                break;
+
+            case ACTION_CHECK_CONNECTION_STATE:
+                checkConnectedApps();
+                break;
+        }
+    }
+
+    private void checkConnectedApps(){
+        //Check if the Tower app connected behind our back.
+        Bundle[] appsInfo = controlTower.getConnectedApps();
+        if (appsInfo != null) {
+            for (Bundle info : appsInfo) {
+                final String appId = info.getString(GCSEvent.EXTRA_APP_ID);
+                if (GCSEventsReceiver.TOWER_APP_ID.equals(appId)) {
+                    final ConnectionParameter connectionParams = info.getParcelable(GCSEvent
+                            .EXTRA_VEHICLE_CONNECTION_PARAMETER);
+                    if(connectionParams != null){
+                        connParams = connectionParams;
+                        connectDrone();
+                    }
+                }
+            }
+        }
+    }
+
+    private void connectDrone(){
+        if (drone != null && !drone.isConnected() && connParams!=null) {
             drone.connect(connParams);
         }
     }
@@ -121,49 +178,54 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     public void onDroneEvent(String event, Bundle bundle) {
         try {
             final String action = new Intent(event).getAction();
-            if (AttributeEvent.STATE_DISCONNECTED.equals(action)) {
-                PebbleKit.closeAppOnPebble(applicationContext, DP_UUID);
-                stopSelf();
-            } else if (AttributeEvent.STATE_CONNECTED.equals(action)) {
-                PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
-            } else if (AttributeEvent.STATE_VEHICLE_MODE.equals(action)
-                    || AttributeEvent.BATTERY_UPDATED.equals(action)
-                    || AttributeEvent.SPEED_UPDATED.equals(action)) {
-                sendDataToWatchIfTimeHasElapsed(drone);
-            } else if ((AttributeEvent.FOLLOW_START.equals(action)
-                    || AttributeEvent.FOLLOW_STOP.equals(action))) {
-                sendDataToWatchIfTimeHasElapsed(drone);
+            switch (action) {
+                case AttributeEvent.STATE_DISCONNECTED:
+                    PebbleKit.closeAppOnPebble(applicationContext, DP_UUID);
+                    stopSelf();
+                    break;
+                case AttributeEvent.STATE_CONNECTED:
+                    PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
+                    break;
+                case AttributeEvent.STATE_VEHICLE_MODE:
+                case AttributeEvent.BATTERY_UPDATED:
+                case AttributeEvent.SPEED_UPDATED:
+                    sendDataToWatchNow(drone);
+                    break;
+                case AttributeEvent.FOLLOW_START:
+                case AttributeEvent.FOLLOW_STOP:
+                    sendDataToWatchNow(drone);
 
-                FollowState followState = drone.getAttribute(AttributeType.FOLLOW_STATE);
-                if (followState != null) {
-                    String eventLabel = null;
-                    switch (followState.getState()) {
-                        case FollowState.STATE_START:
-                        case FollowState.STATE_RUNNING:
-                            eventLabel = "FollowMe enabled";
-                            break;
+                    FollowState followState = drone.getAttribute(AttributeType.FOLLOW_STATE);
+                    if (followState != null) {
+                        String eventLabel = null;
+                        switch (followState.getState()) {
+                            case FollowState.STATE_START:
+                            case FollowState.STATE_RUNNING:
+                                eventLabel = "FollowMe enabled";
+                                break;
 
-                        case FollowState.STATE_END:
-                            eventLabel = "FollowMe disabled";
-                            break;
+                            case FollowState.STATE_END:
+                                eventLabel = "FollowMe disabled";
+                                break;
 
-                        case FollowState.STATE_INVALID:
-                            eventLabel = "FollowMe error: invalid state";
-                            break;
+                            case FollowState.STATE_INVALID:
+                                eventLabel = "FollowMe error: invalid state";
+                                break;
 
-                        case FollowState.STATE_DRONE_DISCONNECTED:
-                            eventLabel = "FollowMe error: drone not connected";
-                            break;
+                            case FollowState.STATE_DRONE_DISCONNECTED:
+                                eventLabel = "FollowMe error: drone not connected";
+                                break;
 
-                        case FollowState.STATE_DRONE_NOT_ARMED:
-                            eventLabel = "FollowMe error: drone not armed";
-                            break;
+                            case FollowState.STATE_DRONE_NOT_ARMED:
+                                eventLabel = "FollowMe error: drone not armed";
+                                break;
+                        }
+
+                        if (eventLabel != null) {
+                            Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
+                        }
                     }
-
-                    if (eventLabel != null) {
-                        Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
-                    }
-                }
+                    break;
             }
         }catch(Exception e){
             //TODO figure out what was messing up here
@@ -172,16 +234,14 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
     @Override
     public void onDestroy() {
-        if (drone != null) {
-            drone.disconnect();
-            drone.unregisterDroneListener(this);
-            drone = null;
-        }
-        if (controlTower != null) {
-            controlTower.unregisterDrone(drone);
-            controlTower.disconnect();
-            controlTower = null;
-        }
+        drone.disconnect();
+        drone.unregisterDroneListener(this);
+
+        controlTower.unregisterDrone(drone);
+        controlTower.disconnect();
+
+        drone = null;
+        controlTower = null;
         pebbleDataHandler = null;
         this.stopForeground(true);
     }
@@ -311,7 +371,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                 case KEY_REQUEST_CYCLE_FOLLOW_TYPE:
                     List<FollowType> followTypes = Arrays.asList(FollowType.values());
                     int currentTypeIndex = followTypes.indexOf(followMe.getMode());
-                    int nextTypeIndex = currentTypeIndex++ % followTypes.size();
+                    int nextTypeIndex = (currentTypeIndex + 1) % followTypes.size();
                     drone.enableFollowMe(followTypes.get(nextTypeIndex));
                     break;
 

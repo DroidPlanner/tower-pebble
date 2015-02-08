@@ -22,12 +22,10 @@ public class MainActivity extends ActionBarActivity {
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }
-        if(!isMyServiceRunning(PebbleCommunicatorService.class)&&false){//TODO start service if it's
-                                // not running and a vehicle is already connected via a different app
-            Intent intent = new Intent(getApplicationContext(), PebbleCommunicatorService.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getApplicationContext().startService(intent);
-        }
+
+        //Start the service every time the activity is started and asked it to check the current connection state.
+        startService(new Intent(getApplicationContext(), PebbleCommunicatorService.class).setAction
+                (PebbleCommunicatorService.ACTION_CHECK_CONNECTION_STATE));
     }
 
     @Override
@@ -46,16 +44,6 @@ public class MainActivity extends ActionBarActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    private boolean isMyServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) getSystemService(getApplicationContext().ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static class PlaceholderFragment extends Fragment {
