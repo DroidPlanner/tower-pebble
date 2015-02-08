@@ -5,6 +5,7 @@
     <string name="intro_text">This app handles communication between 3DR-Services and the Tower
         watchapp.  No need to start this app, it works in the background.</string>
     <string name="install_button_title">Install Tower watchapp</string>
-    <string name="issue_button_title">Report an Issue</string>string>
+    <string name="issue_button_title">Report an Issue</string>
+    <string name="menu_report_issue">Report an issue</string>string>
 
 </resources>

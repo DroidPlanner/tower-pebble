@@ -38,7 +38,14 @@ public class MainActivity extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        return super.onOptionsItemSelected(item);
+        switch(item.getItemId()){
+            case R.id.menu_report_issue:
+                openIssueTracker();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private boolean isMyServiceRunning(Class<?> serviceClass) {
@@ -64,7 +71,7 @@ public class MainActivity extends ActionBarActivity {
         OfflineWatchappInstallUtil.manualWatchappInstall(getApplicationContext());
     }
 
-    public void openIssueTracker(View view){
+    public void openIssueTracker(){
         String url = "https://github.com/DroidPlanner/dp-pebble/issues";
         Intent i = new Intent(Intent.ACTION_VIEW);
         i.setData(Uri.parse(url));
