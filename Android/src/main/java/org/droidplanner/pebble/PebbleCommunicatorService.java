@@ -47,6 +47,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
     public static final String ACTION_CHECK_CONNECTION_STATE = "org.droidplanner.pebble.action.CHECK_CONNECTION_STATE";
 
+    private static final long WATCHDOG_TIMEOUT = 5 * 1000; //ms
+
     private Context applicationContext;
     private ControlTower controlTower;
     private ConnectionParameter connParams;
@@ -66,6 +68,19 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         eventFilter.addAction(AttributeEvent.SPEED_UPDATED);
         eventFilter.addAction(AttributeEvent.FOLLOW_UPDATE);
     }
+
+    private final Runnable destroyWatchdog = new Runnable() {
+        @Override
+        public void run() {
+            handler.removeCallbacks(this);
+
+            if (drone == null || !drone.isConnected()) {
+                stopSelf();
+            }
+
+            handler.postDelayed(this, WATCHDOG_TIMEOUT);
+        }
+    };
 
     @Override
     public void onCreate(){
@@ -109,6 +124,10 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
             }
         }
+
+        //Start a watchdog to automatically stop the service when it's no longer needed.
+        handler.removeCallbacks(destroyWatchdog);
+        handler.postDelayed(destroyWatchdog, WATCHDOG_TIMEOUT);
 
         //Using redeliver intent because we want the intent to be resend if the service is killed.
         return START_REDELIVER_INTENT;
@@ -243,6 +262,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         drone = null;
         controlTower = null;
         pebbleDataHandler = null;
+
+        handler.removeCallbacks(destroyWatchdog);
         this.stopForeground(true);
     }
 
