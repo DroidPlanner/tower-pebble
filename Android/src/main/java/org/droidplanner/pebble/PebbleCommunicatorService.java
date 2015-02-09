@@ -257,7 +257,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         drone.unregisterDroneListener(this);
 
         controlTower.unregisterDrone(drone);
-        controlTower.disconnect();
+        if(controlTower.isTowerConnected())
+            controlTower.disconnect();
 
         drone = null;
         controlTower = null;
