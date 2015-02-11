@@ -1,6 +1,6 @@
 #include <pebble.h>
 #include <string.h>
-#define APP_VERSION "one"
+#define APP_VERSION "1"
   
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!variables
 static Window *window;
@@ -188,7 +188,7 @@ static void window_load(Window *window) {
   text_layer_set_font(mode_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   layer_add_child(window_layer, text_layer_get_layer(mode_layer));
   
-  follow_type_layer = text_layer_create((GRect) { .origin = { 10, 28 }, .size = { bounds.size.w-50, 35 } });//was 15+35+10
+  follow_type_layer = text_layer_create((GRect) { .origin = { 5, 28 }, .size = { bounds.size.w-45, 35 } });
   text_layer_set_text(follow_type_layer, "");
   text_layer_set_text_alignment(follow_type_layer, GTextAlignmentLeft);
   text_layer_set_font(follow_type_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
@@ -223,9 +223,7 @@ static void init(void) {
   app_message_register_inbox_dropped(in_dropped_handler);
   app_message_register_outbox_sent(out_sent_handler);
   app_message_register_outbox_failed(out_failed_handler);
-  const uint32_t inbound_size = 128;
-  const uint32_t outbound_size = 16;
-  app_message_open(inbound_size, outbound_size);
+  app_message_open(256,16);
   app_comm_set_sniff_interval(SNIFF_INTERVAL_REDUCED);
 }
 
