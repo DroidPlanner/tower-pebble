@@ -43,7 +43,9 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     private static final int KEY_APP_VERSION = 3;
 
     private static final UUID DP_UUID = UUID.fromString("1de866f1-22fa-4add-ba55-e7722167a3b4");
-    private static final String EXPECTED_APP_VERSION = "one";
+    private static final String EXPECTED_APP_VERSION = "1";
+
+    private static boolean safeToSendNextPacketToPebble = true;
 
     public static final String ACTION_CHECK_CONNECTION_STATE = "org.droidplanner.pebble.action.CHECK_CONNECTION_STATE";
 
@@ -88,7 +90,12 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         applicationContext = getApplicationContext();
         pebbleDataHandler = new PebbleReceiverHandler(DP_UUID);
         PebbleKit.registerReceivedDataHandler(applicationContext, pebbleDataHandler);
-
+        PebbleKit.registerReceivedAckHandler(applicationContext, new PebbleKit.PebbleAckReceiver(DP_UUID){
+            @Override
+            public void receiveAck(Context context, int transactionId){//Did pebble receive last msg?
+                safeToSendNextPacketToPebble = true;
+            }
+        });
         controlTower = new ControlTower(applicationContext);
         this.drone = new Drone();
     }
@@ -276,17 +283,18 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     }
 
     /**
-     * Calls sendDataToWatchNow if and only if the timeout of 500ms has elapsed
-     * since last call to prevent DOSing the pebble. If not, the packet will be
-     * dropped. If this packet is important (e.g. mode change), call
-     * sendDataToWatchNow directly.
+     * Calls sendDataToWatchNow if the timeout of 500ms has elapsed since last
+     * call or if we receive an ACK to prevent DOSing the pebble. If not, the
+     * packet will be dropped. If this packet is important (e.g. mode change),
+     * call sendDataToWatchNow directly.
      *
      * @param drone
      */
     public void sendDataToWatchIfTimeHasElapsed(Drone drone) {
-        if (System.currentTimeMillis() - timeWhenLastTelemSent > 500) {
+        if (System.currentTimeMillis() - timeWhenLastTelemSent > 1500 || safeToSendNextPacketToPebble) {
             sendDataToWatchNow(drone);
             timeWhenLastTelemSent = System.currentTimeMillis();
+            safeToSendNextPacketToPebble = false;
         }
     }
 
@@ -330,7 +338,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         Double battVoltage = droneBattery.getBatteryVoltage();
         if (battVoltage != null)
             battVoltage = 0.0;
-        String bat = "Bat:" + Double.toString(roundToTwoDigits(battVoltage)) + "V";
+        String bat = "Bat: " + Double.toString(roundToTwoDigits(battVoltage)) + "V";
 
         final Speed droneSpeed = drone.getAttribute(AttributeType.SPEED);
         String speedValue = Double.toString(roundToTwoDigits(droneSpeed.getAirSpeed()));
