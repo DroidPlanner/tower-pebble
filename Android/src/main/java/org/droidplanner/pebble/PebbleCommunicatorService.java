@@ -96,6 +96,13 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                 safeToSendNextPacketToPebble = true;
             }
         });
+        PebbleKit.registerReceivedNackHandler(applicationContext, new PebbleKit.PebbleNackReceiver(DP_UUID){
+            @Override
+            public void receiveNack(Context context, int transactionId){//Did pebble receive last msg?
+                safeToSendNextPacketToPebble = true;
+            }
+        });
+
         controlTower = new ControlTower(applicationContext);
         this.drone = new Drone();
     }
