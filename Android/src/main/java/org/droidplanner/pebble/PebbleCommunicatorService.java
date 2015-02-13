@@ -2,6 +2,7 @@ package org.droidplanner.pebble;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -154,9 +155,18 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
         controlTower.connect(this);
 
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent resultPendingIntent =
+                PendingIntent.getActivity(
+                        this,
+                        0,
+                        notificationIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
         final Notification.Builder notificationBuilder = new Notification.Builder(applicationContext).
                 setContentTitle("Tower-Pebble Running").
-                setSmallIcon(R.drawable.ic_stat_notification);
+                setSmallIcon(R.drawable.ic_stat_notification).
+                setContentIntent(resultPendingIntent);
         final Notification notification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN
                 ? notificationBuilder.build()
                 : notificationBuilder.getNotification();
