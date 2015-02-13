@@ -91,15 +91,15 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         applicationContext = getApplicationContext();
         pebbleDataHandler = new PebbleReceiverHandler(DP_UUID);
         PebbleKit.registerReceivedDataHandler(applicationContext, pebbleDataHandler);
-        PebbleKit.registerReceivedAckHandler(applicationContext, new PebbleKit.PebbleAckReceiver(DP_UUID){
+        PebbleKit.registerReceivedAckHandler(applicationContext, new PebbleKit.PebbleAckReceiver(DP_UUID) {
             @Override
-            public void receiveAck(Context context, int transactionId){//Did pebble receive last msg?
+            public void receiveAck(Context context, int transactionId) {//Did pebble receive last msg?
                 safeToSendNextPacketToPebble = true;
             }
         });
-        PebbleKit.registerReceivedNackHandler(applicationContext, new PebbleKit.PebbleNackReceiver(DP_UUID){
+        PebbleKit.registerReceivedNackHandler(applicationContext, new PebbleKit.PebbleNackReceiver(DP_UUID) {
             @Override
-            public void receiveNack(Context context, int transactionId){//Did pebble receive last msg?
+            public void receiveNack(Context context, int transactionId) {//Did pebble receive last msg?
                 safeToSendNextPacketToPebble = true;
             }
         });
@@ -229,46 +229,15 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                 case AttributeEvent.STATE_CONNECTED:
                     PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
                     break;
-                case AttributeEvent.STATE_VEHICLE_MODE:
                 case AttributeEvent.BATTERY_UPDATED:
                 case AttributeEvent.SPEED_UPDATED:
-                    sendDataToWatchNow(drone);
+                case AttributeEvent.ATTITUDE_UPDATED:
+                    sendDataToWatchIfTimeHasElapsed(drone);
                     break;
+                case AttributeEvent.STATE_VEHICLE_MODE:
                 case AttributeEvent.FOLLOW_START:
                 case AttributeEvent.FOLLOW_STOP:
                     sendDataToWatchNow(drone);
-
-                    FollowState followState = drone.getAttribute(AttributeType.FOLLOW_STATE);
-                    if (followState != null) {
-                        String eventLabel = null;
-                        switch (followState.getState()) {
-                            case FollowState.STATE_START:
-                            case FollowState.STATE_RUNNING:
-                                eventLabel = "FollowMe enabled";
-                                break;
-
-                            case FollowState.STATE_END:
-                                eventLabel = "FollowMe disabled";
-                                break;
-
-                            case FollowState.STATE_INVALID:
-                                eventLabel = "FollowMe error: invalid state";
-                                break;
-
-                            case FollowState.STATE_DRONE_DISCONNECTED:
-                                eventLabel = "FollowMe error: drone not connected";
-                                break;
-
-                            case FollowState.STATE_DRONE_NOT_ARMED:
-                                eventLabel = "FollowMe error: drone not armed";
-                                break;
-                        }
-
-                        if (eventLabel != null) {
-                            Toast.makeText(applicationContext, eventLabel, Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                    break;
             }
         }catch(Exception e){
             //TODO figure out what was messing up here
