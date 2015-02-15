@@ -228,6 +228,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     break;
                 case AttributeEvent.STATE_CONNECTED:
                     PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
+                    Thread.sleep(250);
+                    sendDataToWatchNow(drone);
                     break;
                 case AttributeEvent.BATTERY_UPDATED:
                 case AttributeEvent.SPEED_UPDATED:
