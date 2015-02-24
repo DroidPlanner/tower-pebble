@@ -6,12 +6,10 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.widget.Toast;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
@@ -62,16 +60,6 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     long timeWhenLastTelemSent = System.currentTimeMillis();
     private PebbleKit.PebbleDataReceiver pebbleDataHandler;
 
-    //TODO use this eventFilter
-    public final static IntentFilter eventFilter = new IntentFilter();
-    static {
-        eventFilter.addAction(AttributeEvent.STATE_CONNECTED);
-        eventFilter.addAction(AttributeEvent.STATE_VEHICLE_MODE);
-        eventFilter.addAction(AttributeEvent.BATTERY_UPDATED);
-        eventFilter.addAction(AttributeEvent.SPEED_UPDATED);
-        eventFilter.addAction(AttributeEvent.FOLLOW_UPDATE);
-    }
-
     private final Runnable destroyWatchdog = new Runnable() {
         @Override
         public void run() {
@@ -94,12 +82,6 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         PebbleKit.registerReceivedAckHandler(applicationContext, new PebbleKit.PebbleAckReceiver(DP_UUID) {
             @Override
             public void receiveAck(Context context, int transactionId) {//Did pebble receive last msg?
-                safeToSendNextPacketToPebble = true;
-            }
-        });
-        PebbleKit.registerReceivedNackHandler(applicationContext, new PebbleKit.PebbleNackReceiver(DP_UUID) {
-            @Override
-            public void receiveNack(Context context, int transactionId) {//Did pebble receive last msg?
                 safeToSendNextPacketToPebble = true;
             }
         });
@@ -234,12 +216,15 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                 case AttributeEvent.BATTERY_UPDATED:
                 case AttributeEvent.SPEED_UPDATED:
                 case AttributeEvent.ATTITUDE_UPDATED:
-                    sendDataToWatchIfTimeHasElapsed(drone);
-                    break;
+
                 case AttributeEvent.STATE_VEHICLE_MODE:
                 case AttributeEvent.FOLLOW_START:
                 case AttributeEvent.FOLLOW_STOP:
-                    sendDataToWatchNow(drone);
+                case AttributeEvent.TYPE_UPDATED:
+                case AttributeEvent.STATE_ARMING:
+                case AttributeEvent.STATE_UPDATED:
+                    sendDataToWatchIfTimeHasElapsed(drone);
+                    break;
             }
         }catch(Exception e){
             //TODO figure out what was messing up here
@@ -271,15 +256,17 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     }
 
     /**
-     * Calls sendDataToWatchNow if the timeout of 500ms has elapsed since last
-     * call or if we receive an ACK to prevent DOSing the pebble. If not, the
-     * packet will be dropped. If this packet is important (e.g. mode change),
-     * call sendDataToWatchNow directly.
+     * Calls sendDataToWatchNow if the timeout of 1000ms has elapsed since last
+     * call or if we receive an ACK (and it's been 500ms) to prevent DOSing the pebble. If not, the
+     * packet will be dropped.
      *
      * @param drone
      */
     public void sendDataToWatchIfTimeHasElapsed(Drone drone) {
-        if (System.currentTimeMillis() - timeWhenLastTelemSent > 1500 || safeToSendNextPacketToPebble) {
+        if ((System.currentTimeMillis() - timeWhenLastTelemSent) > 1000
+                || (safeToSendNextPacketToPebble
+                && (System.currentTimeMillis() - timeWhenLastTelemSent) > 500)
+                ) {
             sendDataToWatchNow(drone);
             timeWhenLastTelemSent = System.currentTimeMillis();
             safeToSendNextPacketToPebble = false;
@@ -311,7 +298,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             modeLabel = "Disarmed";
         else if (followState.isEnabled())
             modeLabel = "Follow";
-        else if (guidedState.isIdle())
+        else if (guidedState.isInitialized() && !followState.isEnabled())
             modeLabel = "Paused";
 
         data.addString(KEY_MODE, modeLabel);
