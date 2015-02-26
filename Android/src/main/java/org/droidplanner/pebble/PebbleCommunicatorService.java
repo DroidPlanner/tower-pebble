@@ -24,7 +24,6 @@ import com.o3dr.services.android.lib.drone.connection.ConnectionResult;
 import com.o3dr.services.android.lib.drone.property.Altitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
 import com.o3dr.services.android.lib.drone.property.GuidedState;
-import com.o3dr.services.android.lib.drone.property.Speed;
 import com.o3dr.services.android.lib.drone.property.State;
 import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.gcs.event.GCSEvent;
@@ -256,16 +255,16 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     }
 
     /**
-     * Calls sendDataToWatchNow if the timeout of 1000ms has elapsed since last
-     * call or if we receive an ACK (and it's been 500ms) to prevent DOSing the pebble. If not, the
-     * packet will be dropped.
+     * There are lots of checks in here to prevent DOSing the pebble.
+     * If it hasn't been long enough since last send, this method will do nothing.
      *
      * @param drone
+     * @param sendTelem Send telemetry also?  Uses lots of bandwidth, so don't send often.
      */
     public void sendDataToWatchIfTimeHasElapsed(Drone drone) {
-        if ((System.currentTimeMillis() - timeWhenLastTelemSent) > 1000
+    if ((System.currentTimeMillis() - timeWhenLastTelemSent) > 1500
                 || (safeToSendNextPacketToPebble
-                && (System.currentTimeMillis() - timeWhenLastTelemSent) > 500)
+                && (System.currentTimeMillis() - timeWhenLastTelemSent) > 1000)
                 ) {
             sendDataToWatchNow(drone);
             timeWhenLastTelemSent = System.currentTimeMillis();
@@ -280,7 +279,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
      *
      * @param drone
      */
-    public void sendDataToWatchNow(Drone drone) {
+    private void sendDataToWatchNow(Drone drone) {
         final FollowState followState = drone.getAttribute(AttributeType.FOLLOW_STATE);
         final State droneState = drone.getAttribute(AttributeType.STATE);
         if (followState == null || droneState == null)
@@ -315,17 +314,9 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
             battVoltage = 0.0;
         String bat = "Bat: " + Double.toString(roundToTwoDigits(battVoltage)) + "V";
 
-        final Speed droneSpeed = drone.getAttribute(AttributeType.SPEED);
-        String speedValue = Double.toString(roundToTwoDigits(droneSpeed.getAirSpeed()));
-        //Chop off '.0' if that's what it ends with
-        if(speedValue.substring(speedValue.length()-2,speedValue.length()).equals(".0")){
-            speedValue = speedValue.substring(0,speedValue.length()-2);
-        }
-        String speed = "Spd: " + speedValue + "m/s";
-
         final Altitude droneAltitude = drone.getAttribute(AttributeType.ALTITUDE);
         String altitude = "Alt: " + Double.toString(roundToTwoDigits(droneAltitude.getAltitude())) + "m";
-        String telem = bat + "\n" + altitude + "\n" + speed;
+        String telem = bat + "\n" + altitude;
         data.addString(KEY_TELEM, telem);
 
         data.addString(KEY_APP_VERSION, EXPECTED_APP_VERSION);
