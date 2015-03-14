@@ -259,12 +259,11 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
      * If it hasn't been long enough since last send, this method will do nothing.
      *
      * @param drone
-     * @param sendTelem Send telemetry also?  Uses lots of bandwidth, so don't send often.
      */
     public void sendDataToWatchIfTimeHasElapsed(Drone drone) {
-    if ((System.currentTimeMillis() - timeWhenLastTelemSent) > 1500
+    if ((System.currentTimeMillis() - timeWhenLastTelemSent) > 1000
                 || (safeToSendNextPacketToPebble
-                && (System.currentTimeMillis() - timeWhenLastTelemSent) > 1000)
+                && (System.currentTimeMillis() - timeWhenLastTelemSent) > 700)
                 ) {
             sendDataToWatchNow(drone);
             timeWhenLastTelemSent = System.currentTimeMillis();
@@ -357,10 +356,12 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     break;
 
                 case KEY_REQUEST_MODE_FOLLOW:
-                    if (followMe.isEnabled()) {
-                        drone.disableFollowMe();
-                    } else {
-                        drone.enableFollowMe(followMe.getMode());
+                    if (followMe != null){
+                        if (followMe.isEnabled()) {
+                            drone.disableFollowMe();
+                        } else {
+                            drone.enableFollowMe(followMe.getMode());
+                        }
                     }
                     break;
 
@@ -372,6 +373,9 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     break;
 
                 case KEY_REQUEST_PAUSE:
+                    if(followMe.isEnabled()){
+                        drone.disableFollowMe();
+                    }
                     drone.pauseAtCurrentLocation();
                     break;
 
