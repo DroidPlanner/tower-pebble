@@ -365,7 +365,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     break;
 
                 case KEY_REQUEST_CYCLE_FOLLOW_TYPE:
-                    List<FollowType> followTypes = Arrays.asList(FollowType.values());
+                    List<FollowType> followTypes = FollowType.getFollowTypes(false);
                     int currentTypeIndex = followTypes.indexOf(followMe.getMode());
                     int nextTypeIndex = (currentTypeIndex + 1) % followTypes.size();
                     drone.enableFollowMe(followTypes.get(nextTypeIndex));
