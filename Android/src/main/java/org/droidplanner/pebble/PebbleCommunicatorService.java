@@ -353,7 +353,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     break;
 
                 case KEY_REQUEST_DISCONNECT:
-                    stopSelf();
+                    //Don't do anything.  Running stopSelf() would cause issues if the user changed apps and then changed back
                     break;
 
                 case KEY_REQUEST_MODE_FOLLOW:
