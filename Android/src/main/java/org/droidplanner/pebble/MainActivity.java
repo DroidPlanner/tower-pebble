@@ -1,6 +1,8 @@
 package org.droidplanner.pebble;
 
 import android.app.ActivityManager;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -56,7 +58,25 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void installWatchapp(View view){
-        OfflineWatchappInstallUtil.manualWatchappInstall(getApplicationContext());
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.select_install_method)
+                .setItems(R.array.install_methods_array, new DialogInterface.OnClickListener(){
+                   public void onClick(DialogInterface dialog, int which){
+                       switch(which){
+                           case 0://app store
+                               String url = "pebble://appstore/54d54fede8bb36ea9d00001f";
+                               Intent i = new Intent(Intent.ACTION_VIEW);
+                               i.setData(Uri.parse(url));
+                               startActivity(i);
+                               break;
+                           case 1://offline
+                               OfflineWatchappInstallUtil.manualWatchappInstall(getApplicationContext());
+                               break;
+                       }
+                   }
+                });
+        builder.create();
+        builder.show();
     }
 
     public void openIssueTracker(){
