@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -13,6 +14,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.getpebble.android.kit.PebbleKit;
 
 public class MainActivity extends ActionBarActivity {
     @Override
@@ -67,7 +71,17 @@ public class MainActivity extends ActionBarActivity {
                                String url = "pebble://appstore/54d54fede8bb36ea9d00001f";
                                Intent i = new Intent(Intent.ACTION_VIEW);
                                i.setData(Uri.parse(url));
-                               startActivity(i);
+                               //if pebble app store is installed
+                               if(getPackageManager().queryIntentActivities(
+                                       i, PackageManager.MATCH_DEFAULT_ONLY).size()>0){
+                                   startActivity(i);
+                                   break;
+                               }
+                               Toast.makeText(
+                                       getApplicationContext(),
+                                       R.string.pebble_app_not_installed,
+                                       Toast.LENGTH_LONG)
+                                       .show();
                                break;
                            case 1://offline
                                OfflineWatchappInstallUtil.manualWatchappInstall(getApplicationContext());
