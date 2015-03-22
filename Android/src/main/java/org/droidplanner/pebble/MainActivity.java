@@ -75,13 +75,13 @@ public class MainActivity extends ActionBarActivity {
                                if(getPackageManager().queryIntentActivities(
                                        i, PackageManager.MATCH_DEFAULT_ONLY).size()>0){
                                    startActivity(i);
-                                   break;
+                               }else {
+                                   Toast.makeText(
+                                           getApplicationContext(),
+                                           R.string.pebble_app_not_installed,
+                                           Toast.LENGTH_LONG)
+                                           .show();
                                }
-                               Toast.makeText(
-                                       getApplicationContext(),
-                                       R.string.pebble_app_not_installed,
-                                       Toast.LENGTH_LONG)
-                                       .show();
                                break;
                            case 1://offline
                                OfflineWatchappInstallUtil.manualWatchappInstall(getApplicationContext());
