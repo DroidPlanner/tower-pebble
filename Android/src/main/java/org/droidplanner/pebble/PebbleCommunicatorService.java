@@ -323,7 +323,7 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
         final Battery droneBattery = drone.getAttribute(AttributeType.BATTERY);
         Double battVoltage = droneBattery.getBatteryVoltage();
-        if (battVoltage != null)
+        if (battVoltage == null)
             battVoltage = 0.0;
         String bat = "Bat: " + Double.toString((double) Math.round(battVoltage * 10) / 10) + "V";
 
