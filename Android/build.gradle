@@ -34,5 +34,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:21.0.3'
     compile 'com.android.support:cardview-v7:21.0.2'
     compile 'com.o3dr:3dr-services-lib:2.2.16'
-    compile 'com.getpebble:pebblekit:2.6.0'
+    compile 'com.getpebble:pebblekit:3.0.0@aar'
 }
