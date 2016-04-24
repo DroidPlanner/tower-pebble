@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="install_methods_array">
+        <item>Pebble App Store (Recommended)</item>
+        <item>Offline</item>
+    </string-array>
+</resources>

@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
@@ -54,6 +55,8 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
     private ConnectionParameter connParams;
     private Drone drone;
     private final Handler handler = new Handler();
+
+    private FollowType previousFollowType = FollowType.LEASH;
 
     private String lastReceivedAction = null;
     long timeWhenLastTelemSent = System.currentTimeMillis();
@@ -208,22 +211,33 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     stopSelf();
                     break;
                 case AttributeEvent.STATE_CONNECTED:
+                case AttributeEvent.HEARTBEAT_FIRST:
                     PebbleKit.startAppOnPebble(applicationContext, DP_UUID);
                     Thread.sleep(250);
                     sendDataToWatchNow(drone);
                     break;
+                //Telem gets slow updates
                 case AttributeEvent.BATTERY_UPDATED:
-                case AttributeEvent.SPEED_UPDATED:
                 case AttributeEvent.ATTITUDE_UPDATED:
-
-                case AttributeEvent.STATE_VEHICLE_MODE:
-                case AttributeEvent.FOLLOW_START:
-                case AttributeEvent.FOLLOW_STOP:
-                case AttributeEvent.TYPE_UPDATED:
-                case AttributeEvent.STATE_ARMING:
-                case AttributeEvent.STATE_UPDATED:
                     sendDataToWatchIfTimeHasElapsed(drone);
                     break;
+                //Mode changes get fast updates
+                case AttributeEvent.STATE_VEHICLE_MODE:
+                case AttributeEvent.FOLLOW_START:
+                case AttributeEvent.STATE_ARMING:
+                case AttributeEvent.STATE_UPDATED:
+                    sendDataToWatchNow(drone);
+                    break;
+                //Follow type update gets fast update
+                case AttributeEvent.FOLLOW_UPDATE:
+                    final FollowState followState = drone.getAttribute(AttributeType.FOLLOW_STATE);
+                    if(followState != null){
+                        final FollowType followType = followState.getMode();
+                        if(!previousFollowType.equals(followType)){
+                            previousFollowType = followType;
+                            sendDataToWatchNow(drone);
+                        }
+                    }
             }
         }catch(Exception e){
             //TODO figure out what was messing up here
@@ -247,11 +261,11 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
         this.stopForeground(true);
     }
 
-    private double roundToTwoDigits(double value) {
+    private String roundToTwoDigits(double value) {
         if(value>10)//If greater than 10, lop off the decimal
-            return Math.round(value);
+            return Integer.toString((int)Math.round(value));
         else//otherwise otherwise keep the first decimal and lop off the rest
-            return (double) Math.round(value * 10) / 10;
+            return Double.toString((double) Math.round(value * 10) / 10);
     }
 
     /**
@@ -259,12 +273,11 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
      * If it hasn't been long enough since last send, this method will do nothing.
      *
      * @param drone
-     * @param sendTelem Send telemetry also?  Uses lots of bandwidth, so don't send often.
      */
     public void sendDataToWatchIfTimeHasElapsed(Drone drone) {
-    if ((System.currentTimeMillis() - timeWhenLastTelemSent) > 1500
+    if ((System.currentTimeMillis() - timeWhenLastTelemSent) > 1000
                 || (safeToSendNextPacketToPebble
-                && (System.currentTimeMillis() - timeWhenLastTelemSent) > 1000)
+                && (System.currentTimeMillis() - timeWhenLastTelemSent) > 700)
                 ) {
             sendDataToWatchNow(drone);
             timeWhenLastTelemSent = System.currentTimeMillis();
@@ -310,12 +323,12 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
 
         final Battery droneBattery = drone.getAttribute(AttributeType.BATTERY);
         Double battVoltage = droneBattery.getBatteryVoltage();
-        if (battVoltage != null)
+        if (battVoltage == null)
             battVoltage = 0.0;
-        String bat = "Bat: " + Double.toString(roundToTwoDigits(battVoltage)) + "V";
+        String bat = "Bat: " + Double.toString((double) Math.round(battVoltage * 10) / 10) + "V";
 
         final Altitude droneAltitude = drone.getAttribute(AttributeType.ALTITUDE);
-        String altitude = "Alt: " + Double.toString(roundToTwoDigits(droneAltitude.getAltitude())) + "m";
+        String altitude = "Alt: " + roundToTwoDigits(droneAltitude.getAltitude()) + "m";
         String telem = bat + "\n" + altitude;
         data.addString(KEY_TELEM, telem);
 
@@ -353,25 +366,28 @@ public class PebbleCommunicatorService extends Service implements DroneListener,
                     break;
 
                 case KEY_REQUEST_DISCONNECT:
-                    stopSelf();
+                    //Don't do anything.  Running stopSelf() would cause issues if the user changed apps and then changed back
                     break;
 
                 case KEY_REQUEST_MODE_FOLLOW:
-                    if (followMe.isEnabled()) {
-                        drone.disableFollowMe();
-                    } else {
-                        drone.enableFollowMe(followMe.getMode());
+                    if (followMe != null){
+                        if (!followMe.isEnabled()) {
+                            drone.enableFollowMe(followMe.getMode());
+                        }
                     }
                     break;
 
                 case KEY_REQUEST_CYCLE_FOLLOW_TYPE:
-                    List<FollowType> followTypes = Arrays.asList(FollowType.values());
+                    List<FollowType> followTypes = FollowType.getFollowTypes(false);
                     int currentTypeIndex = followTypes.indexOf(followMe.getMode());
                     int nextTypeIndex = (currentTypeIndex + 1) % followTypes.size();
                     drone.enableFollowMe(followTypes.get(nextTypeIndex));
                     break;
 
                 case KEY_REQUEST_PAUSE:
+                    if(followMe.isEnabled()){
+                        drone.disableFollowMe();
+                    }
                     drone.pauseAtCurrentLocation();
                     break;
 

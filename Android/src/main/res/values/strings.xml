@@ -6,5 +6,7 @@
         watchapp.  No need to start this app, it works in the background.</string>
     <string name="install_button_title">Install/Update watchapp</string>
     <string name="menu_report_issue">Report an issue</string>
+    <string name="select_install_method">Select Install Method</string>
+    <string name="pebble_app_not_installed">Pebble app is not installed!</string>
 
 </resources>
